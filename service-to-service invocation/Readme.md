@@ -172,3 +172,57 @@ Kubernetes використовує службу DNS Kubernetes для визн�
 (Dapr can run on a variety of hosting platforms. To enable service discovery and service invocation, Dapr uses pluggable name resolution components. For example, the Kubernetes name resolution component uses the Kubernetes DNS service to resolve the location of other applications running in the cluster. Self-hosted machines can use the mDNS name resolution component. The Consul name resolution component can be used in any hosting environment, including Kubernetes or self-hosted)
 
 ## Приклад архітектури (Example Architecture)
+
+Дотримуючись наведеної вище послідовності викликів, уявіть, що у вас є програми, як описано в підручнику [Hello World](https://github.com/dapr/quickstarts/blob/master/tutorials/hello-world/README.md), де програма на `python` викликає програму на `node.js`. 
+У такому сценарії додаток на `python` буде "Сервісом A", а додаток на `Node.js` - "Сервісом B".
+
+(Following the above call sequence, suppose you have the applications as described in the [Hello World tutorial](https://github.com/dapr/quickstarts/blob/master/tutorials/hello-world/README.md), where a python app invokes a node.js app. In such a scenario, the python app would be “Service A” , and a Node.js app would be “Service B”.)
+
+
+На діаграмі нижче знову показано послідовність 1-7 на локальній машині з викликами API:
+
+(The diagram below shows sequence 1-7 again on a local machine showing the API calls:)
+![img_2.png](img_2.png)
+
+
+
+1. Додаток `Node.js` має ідентифікатор додатка Dapr `nodeapp`. Додаток `python` викликає метод `neworder` додатка `Node.js`, надсилаючи `POST`-повідомлення http://localhost:3500/v1.0/invoke/nodeapp/method/neworder, яке спочатку надсилається до локального Dapr-сайдвела додатка `python`(The Node.js app has a Dapr app ID of nodeapp. The python app invokes the Node.js app’s neworder method by POSTing http://localhost:3500/v1.0/invoke/nodeapp/method/neworder, which first goes to the python app’s local Dapr sidecar).
+
+2. Dapr визначає місцезнаходження додатка `Node.js` за допомогою компонента розпізнавання імен (в даному випадку 'mDNS', якщо він розміщений на вашому комп'ютері), який працює на вашій локальній машині.(Dapr discovers the Node.js app’s location using name resolution component (in this case mDNS while self-hosted) which runs on your local machine).
+3. Dapr перенаправляє запит до сайдкару додатка `Node.js`, використовуючи щойно отримане місце розташування.(Dapr forwards the request to the Node.js app’s sidecar using the location it just received).
+4. Додаток  сайдкар`Node.js` перенаправляє запит до основного додатку `Node.js`. Додаток `Node.js` виконує свою бізнес-логіку, реєструючи вхідне повідомлення, а потім зберігає ідентифікатор замовлення в 'Redis' (на схемі не показано) (The Node.js app’s sidecar forwards the request to the Node.js app. The Node.js app performs its business logic, logging the incoming message and then persist the order ID into Redis (not shown in the diagram)).
+5. Додаток `Node.js` надсилає відповідь додатку `Python` через сайдкар `Node.js` (The Node.js app sends a response to the Python app through the Node.js sidecar).
+6. Dapr пересилає відповідь на сайдкар `Python` Dapr. (Dapr forwards the response to the Python Dapr sidecar).
+7. Python-додаток отримує відповідь. (The Python app receives the response).
+
+## Спробуйте виклик сервісу (Try out service invocation)s
+
+### Quickstarts & tutorials
+
+Документи Dapr містять кілька коротких інструкцій, які використовують будівельний блок виклику сервісів у різних прикладах архітектур. Щоб отримати просте розуміння api виклику сервісів та його можливостей, ми рекомендуємо почати з наших коротких інструкцій:
+
+(The Dapr docs contain multiple quickstarts that leverage the service invocation building block in different example architectures. To get a straight-forward understanding of the service invocation api and it’s features we recommend starting with our quickstarts:)
+
+| Quickstart/tutorial	                                                                                            | Description |
+|-----------------------------------------------------------------------------------------------------------------|-------------|
+| [Service invocation quickstart](https://docs.dapr.io/getting-started/quickstarts/serviceinvocation-quickstart/) |This quickstart gets you interacting directly with the service invocation building block|
+| [Hello world tutorial](https://github.com/dapr/quickstarts/blob/master/tutorials/hello-world/README.md)         |This tutorial shows how to use both the service invocation and state management building blocks all running locally on your machine.|
+| [Hello world kubernetes tutorial](https://github.com/dapr/quickstarts/blob/master/tutorials/hello-kubernetes/README.md)                                                                             |This tutorial walks through using Dapr in kubernetes and covers both the service invocation and state management building blocks as well.|
+
+### Start using service invocation directly in your app
+
+Хочете пропустити швидкий старт? Не проблема. Ви можете випробувати блок виклику сервісів безпосередньо у своєму додатку, щоб безпечно взаємодіяти з іншими сервісами. Після [встановлення Dapr](https://docs.dapr.io/getting-started) ви можете почати використовувати API виклику сервісів наступними способами.
+
+(Want to skip the quickstarts? Not a problem. You can try out the service invocation building block directly in your application to securely communicate with other services. After Dapr is installed, you can begin using the service invocation API in the following ways.)
+
+Викликати сервіси за допомогою: (Invoke services using:)
+
+- **HTTP and gRPC service invocation** (recommended set up method)
+   * _HTTP_ - Allows you to just add the `dapr-app-id` header and you’re ready to get started. Read more on this here, [Invoke Services using HTTP](https://docs.dapr.io/developing-applications/building-blocks/service-invocation/howto-invoke-discover-services/).
+   * _gRPC_ - For gRPC based applications, the service invocation API is also available. Run the gRPC server, then invoke services using the Dapr CLI. Read more on this in [Configuring Dapr to use gRPC](https://docs.dapr.io/operations/configuration/grpc/)  and [Invoke services using gRPC](https://docs.dapr.io/developing-applications/building-blocks/service-invocation/howto-invoke-services-grpc/).
+- **Direct call to the API** - In addition to proxying, there’s also an option to directly call the service invocation API to invoke a GET endpoint. Just update your address URL to `localhost:<dapr-http-port>` and you’ll be able to directly call the API. You can also read more on this in the _Invoke Services using HTTP_ docs linked above under HTTP proxying.
+- **SDKs** - If you’re using a Dapr SDK, you can directly use service invocation through the SDK. Select the SDK you need and use the Dapr client to invoke a service. Read more on this in [Dapr SDKs](https://docs.dapr.io/developing-applications/sdks/).
+
+Для швидкого тестування спробуйте використовувати Dapr CLI для виклику сервісу: (For quick testing, try using the Dapr CLI for service invocation:)
+
+- **Dapr CLI command** - Once the Dapr CLI is set up, use `dapr invoke --method <method-name>` command along with the method flag and the method of interest. Read more on this in [Dapr CLI](https://docs.dapr.io/reference/cli/dapr-invoke/)

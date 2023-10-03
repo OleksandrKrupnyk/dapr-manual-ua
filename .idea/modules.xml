@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/dapr.iml" filepath="$PROJECT_DIR$/.idea/dapr.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/dapr-переклад.iml" filepath="$PROJECT_DIR$/.idea/dapr-переклад.iml" />
     </modules>
   </component>
 </project>
